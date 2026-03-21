@@ -50,8 +50,12 @@ class QFA(FFA.OriginalFFA):
         self.sort_flag = False
 
     def _measure(self, theta, lb, ub):
-        """Collapse qubit angles to real-valued positions."""
-        return lb + (ub - lb) * np.cos(theta) ** 2
+        """
+        Quantum measurement via directional encoding.
+        Movement magnitude = |cos(θ)| × step, direction = sign(cos(θ))
+        This is more effective for continuous optimization.
+        """
+        return np.cos(theta)   # returns direction in [-1, 1]
 
     def _quantum_attractiveness(self, theta_i, theta_j):
         """
@@ -74,66 +78,57 @@ class QFA(FFA.OriginalFFA):
 
     def evolve(self, epoch):
         """
-        QFA evolution step.
-        For each pair (i, j): if firefly j is brighter than i,
-        move i toward j using quantum rotation gate.
+        QFA evolution using directional qubit encoding.
+        Firefly i moves toward brighter firefly j via quantum rotation.
+        Movement: x_new = x_i + β × cos(θ_i) × step_size
         """
         lb = np.array(self.problem.lb)
         ub = np.array(self.problem.ub)
+        step_size = (ub - lb) / 4.0   # base step scale
 
         pop_new = []
         for i in range(self.pop_size):
             theta_i = self.theta[i].copy()
+            x_i = self.pop[i].solution.copy()
             moved = False
 
             for j in range(self.pop_size):
                 if i == j:
                     continue
-
-                # Check brightness: lower fitness = brighter (minimization)
-                fi = self.pop[i].target.fitness
-                fj = self.pop[j].target.fitness
-
                 if self.compare_target(self.pop[j].target,
                                        self.pop[i].target,
                                        self.problem.minmax):
-                    # j is brighter → move i toward j
                     theta_j = self.theta[j]
 
-                    # Quantum attractiveness (distance in θ-space)
-                    beta = self._quantum_attractiveness(theta_i, theta_j)
+                    # Quantum attractiveness based on Euclidean distance in x-space
+                    r_sq = np.sum((x_i - self.pop[j].solution) ** 2)
+                    beta = self.p_sparks * np.exp(-self.exp_const * r_sq /
+                                                   np.sum((ub - lb) ** 2))
 
-                    # Rotation direction: toward j
-                    direction = np.sign(theta_j - theta_i)
-                    direction[direction == 0] = np.random.choice(
-                        [-1, 1], size=np.sum(direction == 0))
+                    # Quantum rotation: rotate theta_i toward theta_j
+                    diff_theta = theta_j - theta_i
+                    theta_i = (theta_i + beta * diff_theta) % (2 * np.pi)
 
-                    # Quantum rotation gate update
-                    delta_theta = beta * direction * self.delta_theta_max
+                    # Random walk in theta space (alpha term)
+                    theta_i += self.max_sparks * (np.random.rand(len(theta_i)) - 0.5) * np.pi
 
-                    # Random walk (alpha term) — keeps diversity
-                    rand_walk = self.max_sparks * (np.random.rand(len(theta_i)) - 0.5)
-                    rand_walk_theta = rand_walk * (np.pi / 4)  # scale to θ space
-
-                    theta_i = theta_i + delta_theta + rand_walk_theta
-                    theta_i = np.clip(theta_i, 0, np.pi / 2)
+                    # Measurement: move in direction cos(θ) × beta × step
+                    x_i = x_i + beta * np.cos(theta_i) * step_size
                     moved = True
 
-            # Quantum tunneling with small probability
+            # Quantum tunneling
             tunnel_mask = np.random.rand(len(theta_i)) < self.tunnel_prob
             if np.any(tunnel_mask):
-                theta_i[tunnel_mask] = np.random.uniform(
-                    0, np.pi / 2, np.sum(tunnel_mask))
+                theta_i[tunnel_mask] = np.random.uniform(0, 2*np.pi, np.sum(tunnel_mask))
+                x_i[tunnel_mask] = np.random.uniform(lb[tunnel_mask], ub[tunnel_mask])
 
-            # If no movement, do random walk (firefly is brightest)
             if not moved:
-                rand_step = self.max_sparks * (np.random.rand(len(theta_i)) - 0.5)
-                theta_i += rand_step * (np.pi / 4)
-                theta_i = np.clip(theta_i, 0, np.pi / 2)
+                # Brightest firefly: pure random walk
+                theta_i += self.max_sparks * (np.random.rand(len(theta_i)) - 0.5) * np.pi
+                x_i = x_i + self.max_sparks * np.cos(theta_i) * step_size * 0.5
 
-            # Measure: collapse to real position
-            x_new = self._measure(theta_i, lb, ub)
-            x_new = np.clip(x_new, lb, ub)
+            theta_i = theta_i % (2 * np.pi)
+            x_new = np.clip(x_i, lb, ub)
             self.theta[i] = theta_i
 
             agent = self.generate_empty_agent(x_new)
@@ -144,7 +139,6 @@ class QFA(FFA.OriginalFFA):
         if self.mode in self.AVAILABLE_MODES:
             pop_new = self.update_target_for_population(pop_new)
 
-        # Greedy: accept new if better
         for i in range(self.pop_size):
             if self.compare_target(pop_new[i].target,
                                    self.pop[i].target,

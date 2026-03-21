@@ -1,72 +1,42 @@
-# Python virtual environments
-venv/
-venv311/
-.venv/
-env/
-ENV/
-.env/
-
-# Python cache
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
-*.pyo
-*.pyd
+*.so
 .Python
-
-# Distribution / packaging
-build/
-dist/
-*.egg-info/
 *.egg
+*.egg-info/
+dist/
+build/
 .eggs/
 
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
 
-# Unit test / coverage
-.tox/
-.coverage
-.coverage.*
-htmlcov/
-.pytest_cache/
-.cache/
-nosetests.xml
-coverage.xml
-*.cover
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# IDEs
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
-*~
 
-# OS files
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# OS
 .DS_Store
 Thumbs.db
-desktop.ini
 
-# Logs
+# Results — uncomment these lines if you do NOT want to commit results
+# quantum_benchmark/results/
+# quantum_benchmark/plots/output/
+
+# Keep results folder structure but ignore heavy files during dev
+# quantum_benchmark/results/*.json
+
+# Temp
+*.tmp
 *.log
-logs/
-
-# Environment variables
-.env
-.env.*
-!.env.example
-
-# Benchmark outputs
-quantum_benchmark/results/
-quantum_benchmark/plots/
-*.csv
-*.png
-*.pdf
-
-# Exception for root result/plot placeholders if any
-!quantum_benchmark/results/.gitkeep
-!quantum_benchmark/plots/.gitkeep
