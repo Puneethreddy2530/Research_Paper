@@ -60,7 +60,13 @@ logs/
 .env.*
 !.env.example
 
-# Data / output files (optional, uncomment if needed)
-# *.csv
-# *.json
-# output/
+# Benchmark outputs
+quantum_benchmark/results/
+quantum_benchmark/plots/
+*.csv
+*.png
+*.pdf
+
+# Exception for root result/plot placeholders if any
+!quantum_benchmark/results/.gitkeep
+!quantum_benchmark/plots/.gitkeep
