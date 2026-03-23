@@ -355,11 +355,29 @@ def plot_wsn_network_viz():
 
 def run_all_track2_plots():
     print("\n── Track 2 Plots ──")
-    fs_path = os.path.join(RESULTS_DIR, "feature_selection_results.csv")
-    if not os.path.exists(fs_path):
-        print(f"  [SKIP] {fs_path} not found. Run Track 2 first.")
+    # Try both naming conventions
+    for fname in ("feature_selection_results.csv", "feature_selection_summary.csv"):
+        fs_path = os.path.join(RESULTS_DIR, fname)
+        if os.path.exists(fs_path):
+            break
+    else:
+        print(f"  [SKIP] No feature selection CSV found in {RESULTS_DIR}. Run Track 2 first.")
         return
     df = pd.read_csv(fs_path)
+    # Normalise column names to what the plot functions expect
+    rename = {
+        'Acc_Mean':          'Accuracy_Mean',
+        'Acc_Std':           'Accuracy_Std',
+        'Acc_Best':          'Accuracy_Best',
+        'Sel_Mean':          'Features_Selected_Mean',
+        'Sel_Std':           'Features_Selected_Std',
+        'Red_Mean':          'Reduction_Pct',
+        'Reduction_Mean':    'Reduction_Pct',
+    }
+    df.rename(columns={k: v for k, v in rename.items() if k in df.columns}, inplace=True)
+    # Reduction_Pct: convert 0-1 fraction to percentage if needed
+    if 'Reduction_Pct' in df.columns and df['Reduction_Pct'].max() <= 1.0:
+        df['Reduction_Pct'] = df['Reduction_Pct'] * 100
     plot_accuracy_comparison(df)
     plot_feature_reduction(df)
     plot_accuracy_vs_features(df)
@@ -369,9 +387,12 @@ def run_all_track2_plots():
 
 def run_all_track3_plots():
     print("\n── Track 3 Plots ──")
-    wsn_path = os.path.join(RESULTS_DIR, "wsn_results.csv")
-    if not os.path.exists(wsn_path):
-        print(f"  [SKIP] {wsn_path} not found. Run Track 3 first.")
+    for fname in ("wsn_results.csv", "wsn_localization_summary.csv"):
+        wsn_path = os.path.join(RESULTS_DIR, fname)
+        if os.path.exists(wsn_path):
+            break
+    else:
+        print(f"  [SKIP] No WSN CSV found in {RESULTS_DIR}. Run Track 3 first.")
         return
     df = pd.read_csv(wsn_path)
     plot_wsn_error_comparison(df)

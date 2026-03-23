@@ -55,8 +55,14 @@ def wilcoxon_classical_vs_quantum(raw_data):
     for fname, algo_data in raw_data.items():
         for classic, quantum in pairs:
             try:
-                c_runs = np.array(algo_data[classic], dtype=float)
-                q_runs = np.array(algo_data[quantum], dtype=float)
+                def _extract(runs):
+                    """Handle both plain floats and dicts like {fitness, n_selected, ...}"""
+                    if runs and isinstance(runs[0], dict):
+                        return [r.get('fitness', float('nan')) for r in runs]
+                    return runs
+
+                c_runs = np.array(_extract(algo_data[classic]), dtype=float)
+                q_runs = np.array(_extract(algo_data[quantum]), dtype=float)
 
                 # Remove NaN
                 mask = ~(np.isnan(c_runs) | np.isnan(q_runs))
@@ -98,6 +104,9 @@ def wilcoxon_classical_vs_quantum(raw_data):
 
     # Summary table
     print("\n── Wilcoxon Test Summary (+ = quantum better, = = tie, - = classical better) ──")
+    if df.empty:
+        print("  [WARNING] No Wilcoxon results — check algorithm names match data keys.")
+        return df
     pivot = df.pivot_table(index='Function',
                            columns='Classical',
                            values='Outcome',
@@ -143,7 +152,10 @@ def friedman_test(raw_data):
             if algo not in raw_data[fname]:
                 valid = False
                 break
-            vals = np.array(raw_data[fname][algo], dtype=float)
+            raw = raw_data[fname][algo]
+            if raw and isinstance(raw[0], dict):
+                raw = [r.get('fitness', float('nan')) for r in raw]
+            vals = np.array(raw, dtype=float)
             vals = vals[~np.isnan(vals)]
             if len(vals) == 0:
                 valid = False

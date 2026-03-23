@@ -1,0 +1,12 @@
+Function,QGWO/GWO,QFA/FA,QACO/ACO
+Iris,=,-,=
+Wine,-,-,=
+Glass,=,-,=
+Heart,=,-,-
+Diabetes,=,-,=
+BreastCancer,-,-,-
+Vehicle,-,-,-
+Ionosphere,-,-,+
+Sonar,-,-,-
+Vowel,=,-,=
+Arrhythmia,-,-,+
