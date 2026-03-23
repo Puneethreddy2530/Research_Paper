@@ -28,7 +28,8 @@ POP_SIZE     = 30
 N_TOPOLOGIES = 5        # number of different random network layouts
 N_CORES      = max(1, multiprocessing.cpu_count() - 1)
 
-ALGO_NAMES = ["GWO", "QGWO", "FA", "QFA", "ACO", "QACO"]
+ALGO_NAMES = ["GWO", "QGWO", "FA", "QFA", "ACO", "QACO", "AQHSO"]
+RUN_ALGOS  = ["AQHSO"]
 
 
 def _one_wsn_trial(args):
@@ -48,6 +49,7 @@ def _one_wsn_trial(args):
     from algorithms.quantum_gwo import QGWO
     from algorithms.quantum_fa  import QFA
     from algorithms.quantum_aco import QACO
+    from algorithms.aqhso       import AQHSO
 
     # Import WSN network class from the existing wsn file
     # Works with whichever version is in the repo
@@ -70,6 +72,7 @@ def _one_wsn_trial(args):
         "QACO": lambda: QACO(epoch=epochs, pop_size=pop_size,
                              sample_count=50, intent_factor=0.5, zeta=1.0,
                              delta_theta=0.01, tunnel_prob=0.02),
+        "AQHSO": lambda: AQHSO(epoch=epochs, pop_size=pop_size),
     }
 
     try:
@@ -117,7 +120,7 @@ def run_wsn_localization_parallel():
     topo_seeds = [i * 42 for i in range(N_TOPOLOGIES)]
     all_tasks = []
     for seed in topo_seeds:
-        for algo_name in ALGO_NAMES:
+        for algo_name in RUN_ALGOS:
             for run_id in range(N_RUNS):
                 all_tasks.append((algo_name, seed, run_id, EPOCHS, POP_SIZE))
 
@@ -167,7 +170,7 @@ def run_wsn_localization_parallel():
     raw_metrics  = {a: [] for a in ALGO_NAMES}
 
     for topo_id, seed in enumerate(topo_seeds):
-        for algo_name in ALGO_NAMES:
+        for algo_name in RUN_ALGOS:
             run_results = [r for r in results[seed][algo_name] if r is not None]
             if not run_results:
                 continue
@@ -188,20 +191,34 @@ def run_wsn_localization_parallel():
             })
 
     # ── Save ────────────────────────────────────────────
-    df = pd.DataFrame(summary_rows)
+    new_df = pd.DataFrame(summary_rows)
     p1 = os.path.join(RESULTS_DIR, "wsn_localization_summary.csv")
+    try:
+        old_df = pd.read_csv(p1)
+        old_df = old_df[old_df['Algorithm'] != "AQHSO"]
+        df = pd.concat([old_df, new_df], ignore_index=True)
+    except:
+        df = new_df
     df.to_csv(p1, index=False)
-    print(f"\n  ✓ Saved: {p1}")
+    print(f"\n  ✓ Merged and Saved: {p1}")
 
     p2 = os.path.join(RESULTS_DIR, "wsn_raw_metrics.json")
+    try:
+        with open(p2, 'r') as f:
+            old_raw = json.load(f)
+        for a in ALGO_NAMES:
+            if a != "AQHSO" and a in old_raw:
+                raw_metrics[a] = old_raw[a]
+    except:
+        pass
     with open(p2, 'w') as f:
         json.dump(raw_metrics, f, indent=2)
-    print(f"  ✓ Saved: {p2}")
+    print(f"  ✓ Merged and Saved: {p2}")
 
     # Print overall summary
     print("\n  Overall (averaged across all topologies):")
     overall = df.groupby("Algorithm")[["Mean_Error_m","Pct_Localized"]].mean()
-    overall = overall.loc[ALGO_NAMES]
+    overall = overall.loc[[a for a in ALGO_NAMES if a in overall.index]]
     print(overall.round(4).to_string())
 
     elapsed = time.time() - start_time

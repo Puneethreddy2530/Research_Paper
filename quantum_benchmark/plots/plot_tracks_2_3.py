@@ -23,8 +23,9 @@ COLORS = {
     "GWO":  "#2196F3", "QGWO": "#0D47A1",
     "FA":   "#FF9800", "QFA":  "#E65100",
     "ACO":  "#4CAF50", "QACO": "#1B5E20",
+    "AQHSO": "#9C27B0",
 }
-ALGORITHMS = ["GWO", "QGWO", "FA", "QFA", "ACO", "QACO"]
+ALGORITHMS = ["GWO", "QGWO", "FA", "QFA", "ACO", "QACO", "AQHSO"]
 
 
 # ─────────────────────────────────────────────────────────────
@@ -284,7 +285,13 @@ def plot_wsn_localized_pct(df):
 
     ax.set_xticks(x)
     ax.set_xticklabels(ALGORITHMS, fontsize=12)
-    ax.set_ylim(0, 115)
+    
+    # Dynamically scale Y-axis to prevent squashing if percentages are low
+    max_val = (summary['Mean'] + summary['Std'].fillna(0)).max()
+    if pd.isna(max_val) or max_val < 0.1:
+        max_val = summary['Mean'].max()
+    ax.set_ylim(0, max(max_val * 1.3, 5))
+    
     ax.set_ylabel("% Nodes Localized (error < 1m)", fontsize=12)
     ax.set_title("WSN Localization Rate per Algorithm\n"
                  "(higher = more nodes successfully located)",
@@ -375,9 +382,15 @@ def run_all_track2_plots():
         'Reduction_Mean':    'Reduction_Pct',
     }
     df.rename(columns={k: v for k, v in rename.items() if k in df.columns}, inplace=True)
-    # Reduction_Pct: convert 0-1 fraction to percentage if needed
+    # Convert fractions to percentages if needed
     if 'Reduction_Pct' in df.columns and df['Reduction_Pct'].max() <= 1.0:
         df['Reduction_Pct'] = df['Reduction_Pct'] * 100
+    if 'Accuracy_Mean' in df.columns and df['Accuracy_Mean'].max() <= 1.0:
+        df['Accuracy_Mean'] = df['Accuracy_Mean'] * 100
+    if 'Baseline_Acc' in df.columns and df['Baseline_Acc'].max() <= 1.0:
+        df['Baseline_Acc'] = df['Baseline_Acc'] * 100
+    if 'Accuracy_Best' in df.columns and df['Accuracy_Best'].max() <= 1.0:
+        df['Accuracy_Best'] = df['Accuracy_Best'] * 100
     plot_accuracy_comparison(df)
     plot_feature_reduction(df)
     plot_accuracy_vs_features(df)

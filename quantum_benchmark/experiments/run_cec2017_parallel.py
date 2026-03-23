@@ -39,7 +39,8 @@ CATEGORIES = {
     **{f: "Composition"  for f in [21,22,23,24,25,26,27,28,29]},
 }
 
-ALGO_NAMES = ["GWO", "QGWO", "FA", "QFA", "ACO", "QACO"]
+ALGO_NAMES = ["GWO", "QGWO", "FA", "QFA", "ACO", "QACO", "AQHSO"]
+RUN_ALGOS  = ["AQHSO"]
 
 
 def _one_cec_trial(args):
@@ -56,6 +57,7 @@ def _one_cec_trial(args):
     from algorithms.quantum_gwo import QGWO
     from algorithms.quantum_fa  import QFA
     from algorithms.quantum_aco import QACO
+    from algorithms.aqhso       import AQHSO
     import opfunu
 
     # Load CEC function
@@ -89,6 +91,7 @@ def _one_cec_trial(args):
         "QACO": lambda: QACO(epoch=epoch, pop_size=pop_size,
                              sample_count=50, intent_factor=0.5, zeta=1.0,
                              delta_theta=0.01, tunnel_prob=0.02),
+        "AQHSO": lambda: AQHSO(epoch=epoch, pop_size=pop_size),
     }
 
     try:
@@ -120,7 +123,7 @@ def run_experiment():
         # Build all tasks for this dimension
         all_tasks = []
         for fid in CEC2017_IDS:
-            for algo_name in ALGO_NAMES:
+            for algo_name in RUN_ALGOS:
                 for run_id in range(N_RUNS):
                     all_tasks.append((algo_name, fid, dim, run_id, EPOCH, POP_SIZE))
 
@@ -133,6 +136,18 @@ def run_experiment():
                     for fid in CEC2017_IDS}
         raw_runs = {f"F{fid}": {a: [None]*N_RUNS for a in ALGO_NAMES}
                     for fid in CEC2017_IDS}
+                    
+        try:
+            from utils.result_manager import load_raw_runs
+            existing = load_raw_runs(f"cec2017_raw_runs_D{dim}.json")
+            for f in existing:
+                if f in results:
+                    for a in ALGO_NAMES:
+                        if a != "AQHSO" and a in existing[f]:
+                            results[f][a] = existing[f][a]
+        except Exception:
+            pass
+        
         completed = set()
 
         done = 0

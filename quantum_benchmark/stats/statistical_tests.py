@@ -36,7 +36,7 @@ from utils.result_manager import load_raw_runs, RESULTS_DIR
 PLOTS_DIR = os.path.join(os.path.dirname(__file__), '..', 'plots', 'output')
 os.makedirs(PLOTS_DIR, exist_ok=True)
 
-ALGORITHMS = ["GWO", "QGWO", "FA", "QFA", "ACO", "QACO"]
+ALGORITHMS = ["GWO", "QGWO", "FA", "QFA", "ACO", "QACO", "AQHSO"]
 ALPHA = 0.05  # significance level
 
 

@@ -34,7 +34,8 @@ K_KNN    = 5
 CV_FOLDS = 5
 N_CORES  = max(1, multiprocessing.cpu_count() - 1)
 
-ALGO_NAMES = ["GWO", "QGWO", "FA", "QFA", "ACO", "QACO"]
+ALGO_NAMES = ["GWO", "QGWO", "FA", "QFA", "ACO", "QACO", "AQHSO"]
+RUN_ALGOS  = ["AQHSO"]
 
 
 # ── Worker — must be top-level for pickling (Windows requirement) ──
@@ -55,6 +56,7 @@ def _one_trial(args):
     from algorithms.quantum_gwo import QGWO
     from algorithms.quantum_fa  import QFA
     from algorithms.quantum_aco import QACO
+    from algorithms.aqhso       import AQHSO
     from track2_feature_selection.datasets import load_all_datasets
     from track2_feature_selection.fitness  import FeatureSelectionFitness
 
@@ -84,6 +86,7 @@ def _one_trial(args):
         "QACO": lambda: QACO(epoch=epoch, pop_size=pop_size,
                              sample_count=50, intent_factor=0.5, zeta=1.0,
                              delta_theta=0.01, tunnel_prob=0.02),
+        "AQHSO": lambda: AQHSO(epoch=epoch, pop_size=pop_size),
     }
 
     try:
@@ -132,7 +135,7 @@ def run_feature_selection_parallel():
     # Build ALL tasks: dataset × algo × run
     all_tasks = []
     for ds_name in dataset_names:
-        for algo_name in ALGO_NAMES:
+        for algo_name in RUN_ALGOS:
             for run_id in range(N_RUNS):
                 all_tasks.append((
                     algo_name, ds_name, run_id,
@@ -147,6 +150,19 @@ def run_feature_selection_parallel():
     # Storage: results[ds][algo] = list of N_RUNS result dicts
     results = {ds: {a: [None]*N_RUNS for a in ALGO_NAMES}
                for ds in dataset_names}
+
+    try:
+        p2 = os.path.join(RESULTS_DIR, "feature_selection_raw.json")
+        with open(p2, 'r') as f:
+            existing = json.load(f)
+        for ds in existing:
+            if ds in results:
+                for a in ALGO_NAMES:
+                    if a != "AQHSO" and a in existing[ds]:
+                        results[ds][a] = existing[ds][a]
+    except Exception:
+        pass
+
     completed_keys = set()
 
     done = 0

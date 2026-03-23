@@ -34,21 +34,24 @@ COLORS = {
     "QFA":  "#E65100",   # Dark Orange
     "ACO":  "#4CAF50",   # Green
     "QACO": "#1B5E20",   # Dark Green
+    "AQHSO": "#9C27B0",  # Purple
 }
 
 MARKERS = {
     "GWO":  "o", "QGWO": "s",
     "FA":   "^", "QFA":  "v",
     "ACO":  "D", "QACO": "P",
+    "AQHSO": "X",
 }
 
 LINESTYLES = {
     "GWO":  "--", "QGWO": "-",
     "FA":   "--", "QFA":  "-",
     "ACO":  "--", "QACO": "-",
+    "AQHSO": "-.",
 }
 
-ALGORITHMS = ["GWO", "QGWO", "FA", "QFA", "ACO", "QACO"]
+ALGORITHMS = ["GWO", "QGWO", "FA", "QFA", "ACO", "QACO", "AQHSO"]
 
 
 def fig1_mean_fitness_barchart(df, func_range=("F1", "F13"),
@@ -71,6 +74,12 @@ def fig1_mean_fitness_barchart(df, func_range=("F1", "F13"),
     bar_width = 0.13
     offsets = np.linspace(-(len(ALGORITHMS)-1)/2, (len(ALGORITHMS)-1)/2, len(ALGORITHMS))
 
+    # Precompute offsets per function to make values positive
+    func_offsets = {}
+    for fname in funcs:
+        fmin = df[df['Function'] == fname]['Mean'].min()
+        func_offsets[fname] = fmin - 1e-10 if fmin <= 0 else 0
+
     fig, ax = plt.subplots(figsize=(16, 6))
 
     for i, algo in enumerate(ALGORITHMS):
@@ -79,12 +88,12 @@ def fig1_mean_fitness_barchart(df, func_range=("F1", "F13"),
             subset = df[(df['Function'] == fname) & (df['Algorithm'] == algo)]
             if len(subset) > 0:
                 v = subset.iloc[0]['Mean']
-                vals.append(abs(v) if v != 0 else 1e-10)
+                vals.append(v - func_offsets[fname])
             else:
                 vals.append(1e-10)
 
         # Log scale values for display
-        log_vals = np.log10(np.array(vals) + 1e-300)
+        log_vals = np.log10(np.array(vals))
         log_vals = np.clip(log_vals, -300, 300)
 
         ax.bar(x + offsets[i] * bar_width,
@@ -205,7 +214,7 @@ def fig3_convergence(convergence_file="convergence_data.json",
             mean_curve = np.mean(trimmed, axis=0)
 
             epochs = np.arange(1, len(mean_curve) + 1)
-            ax.semilogy(epochs, np.abs(mean_curve) + 1e-300,
+            ax.plot(epochs, mean_curve,
                        label=algo,
                        color=COLORS.get(algo, 'gray'),
                        linestyle=LINESTYLES.get(algo, '-'),
@@ -214,6 +223,11 @@ def fig3_convergence(convergence_file="convergence_data.json",
                        linewidth=2, markersize=5)
 
         ax.set_xlabel("Iteration (Epoch)", fontsize=11)
+        
+        # Apply log scale only if strictly positive
+        ymin, ymax = ax.get_ylim()
+        if ymin > 0 and ymax / (ymin + 1e-10) > 100:
+            ax.set_yscale('log')
         ax.set_ylabel("Best Fitness (log scale)", fontsize=11)
         ax.set_title(f"Convergence — {fname}", fontsize=12, fontweight='bold')
         ax.legend(fontsize=9, ncol=2)
@@ -308,9 +322,13 @@ def fig5_quantum_improvement(df):
             q_val = df[(df['Function']==fname) & (df['Algorithm']==quantum)]['Mean'].values
 
             if len(c_val) > 0 and len(q_val) > 0:
-                c, q = abs(c_val[0]) + 1e-300, abs(q_val[0]) + 1e-300
-                # Positive = quantum better
-                pct = (np.log10(c) - np.log10(q))
+                c, q = c_val[0], q_val[0]
+                fmin = df[df['Function']==fname]['Mean'].min()
+                offset = fmin - 1e-10 if fmin <= 0 else 0
+                c_shifted, q_shifted = c - offset, q - offset
+                
+                # Positive = quantum better (lower is better, so C > Q -> C_shift > Q_shift -> log10 diff > 0)
+                pct = np.log10(c_shifted) - np.log10(q_shifted)
                 improvements.append(pct)
                 func_labels.append(fname)
 

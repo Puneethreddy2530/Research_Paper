@@ -25,7 +25,8 @@ N_RUNS   = 5
 POP_SIZE = 30
 EPOCH    = 500
 N_CORES  = max(1, multiprocessing.cpu_count() - 1)
-ALGO_NAMES = ["GWO", "QGWO", "FA", "QFA", "ACO", "QACO"]
+ALGO_NAMES = ["GWO", "QGWO", "FA", "QFA", "ACO", "QACO", "AQHSO"]
+RUN_ALGOS = ["AQHSO"]
 
 
 def _one_convergence_trial(args):
@@ -42,6 +43,7 @@ def _one_convergence_trial(args):
     from algorithms.quantum_gwo import QGWO
     from algorithms.quantum_fa  import QFA
     from algorithms.quantum_aco import QACO
+    from algorithms.aqhso import AQHSO
     from benchmarks.classical_23 import BENCHMARK_FUNCTIONS
 
     func_info = next((f for f in BENCHMARK_FUNCTIONS if f[0] == func_name), None)
@@ -64,6 +66,7 @@ def _one_convergence_trial(args):
         "QACO": lambda: QACO(epoch=epoch, pop_size=pop_size,
                              sample_count=50, intent_factor=0.5, zeta=1.0,
                              delta_theta=0.01, tunnel_prob=0.02),
+        "AQHSO": lambda: AQHSO(epoch=epoch, pop_size=pop_size),
     }
 
     try:
@@ -95,17 +98,29 @@ def run_convergence():
     # Build all tasks
     all_tasks = []
     for fname in CONVERGENCE_FUNCS:
-        for algo_name in ALGO_NAMES:
+        for algo_name in RUN_ALGOS:
             for run_id in range(N_RUNS):
                 all_tasks.append((algo_name, fname, run_id, EPOCH, POP_SIZE))
 
     total = len(all_tasks)
     print(f"\n  Total trials: {total} "
-          f"({len(CONVERGENCE_FUNCS)} funcs × {len(ALGO_NAMES)} algos × {N_RUNS} runs)\n")
+          f"({len(CONVERGENCE_FUNCS)} funcs × {len(RUN_ALGOS)} algos × {N_RUNS} runs)\n")
 
-    # Storage: conv_data[func][algo] = list of N_RUNS curves
-    conv_data = {f: {a: [None]*N_RUNS for a in ALGO_NAMES}
-                 for f in CONVERGENCE_FUNCS}
+    # Load existing convergence data
+    path = os.path.join(RESULTS_DIR, "convergence_data.json")
+    if os.path.exists(path):
+        with open(path, 'r') as f:
+            conv_data = json.load(f)
+    else:
+        conv_data = {}
+
+    # Ensure structure exists for new/current algos
+    for fname in CONVERGENCE_FUNCS:
+        if fname not in conv_data:
+            conv_data[fname] = {}
+        for a in ALGO_NAMES:
+            if a not in conv_data[fname]:
+                conv_data[fname][a] = [None]*N_RUNS
     completed = set()
 
     done = 0
