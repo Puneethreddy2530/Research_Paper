@@ -279,16 +279,16 @@ def plot_cd_diagram(avg_ranks_dict, cd, n_functions, title="CD Diagram"):
     ax.plot([min_rank, max_rank], [0, 0], 'k-', linewidth=2)
 
     # Algorithm ticks
-    half = k // 2
     for i, (algo, rank) in enumerate(zip(algos, ranks)):
-        ax.plot([rank, rank], [0, 0.1], 'k-', linewidth=1.5)
         # Alternate label above/below for readability
-        if i < half:
+        if i % 2 == 0:
+            ax.plot([rank, rank], [0, 0.1], 'k-', linewidth=1.5)
             ax.text(rank, 0.18, algo, ha='center', va='bottom',
                     fontsize=11, fontweight='bold', color='darkblue')
             ax.text(rank, 0.12, f"({rank:.2f})", ha='center', va='bottom',
                     fontsize=8, color='gray')
         else:
+            ax.plot([rank, rank], [0, -0.1], 'k-', linewidth=1.5)
             ax.text(rank, -0.18, algo, ha='center', va='top',
                     fontsize=11, fontweight='bold', color='darkred')
             ax.text(rank, -0.12, f"({rank:.2f})", ha='center', va='top',
