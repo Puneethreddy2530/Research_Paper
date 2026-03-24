@@ -50,8 +50,8 @@ When utilized as a Feature Selection wrapper for KNN modeling:
 * **The Absolute Champion of Dimensionality Reduction:** AQHSO averaged a massive **43.58% reduction** in features, completely obliterating every other algorithm (GWO was 2nd at just 27%).
 * On the massive 274-dimension Arrhythmia dataset, AQHSO successfully extracted an identically-accurate model using only **73 features** (a staggering 73.4% reduction).
 
-![Feature Selection Heatmap](quantum_benchmark/plots/output/track2_fs_heatmap.png)
-*Absolute feature reduction mapping across all datasets. AQHSO (blue) produces the leanest ML models globally.*
+![Feature Reduction Rate](quantum_benchmark/plots/output/track2_feature_reduction.png)
+*Absolute feature reduction percentage across all datasets. AQHSO (purple) produces the leanest ML models globally.*
 
 ### 📡 Track 3: Real-World WSN Node Localization
 When synthesizing coordinates for unknown Wireless Sensor Network clusters inside a 300x300m environment:
