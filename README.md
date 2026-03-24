@@ -98,8 +98,7 @@ python plots/plot_tracks_2_3.py
 ---
 
 ## 📜 Authors & Citation
-**Puneeth Reddy T**, **Katyayni Aarya**  
-*Centre for e-Automation Technologies, School of CSE, VIT Chennai, Tamil Nadu, India*  
+**Puneeth Reddy T**, **Katyayni Aarya**    
 
 If you use **AQHSO** in your codebase, please cite our research:
 ```bibtex
