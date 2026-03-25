@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "aqhso"
-version = "1.0.0"
+version = "1.0.1"
 description = "Adaptive Quantum Hybrid Swarm Optimizer: A Three-Phase Metaheuristic"
 readme = "README.md"
 authors = [
@@ -15,7 +15,7 @@ license = { text = "MIT License" }
 requires-python = ">=3.8"
 dependencies = [
     "mealpy>=3.0.1",
-    "numpy>=1.24.0",
+    "numpy>=1.26.4",
     "scipy>=1.11.0",
 ]
 classifiers = [
